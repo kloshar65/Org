@@ -375,4 +375,41 @@ use/default/config.
    vim
  
    git config --global core.editor "vim"
+* mc
+Alt + T одна панель
+* rsync 
+cp rsync rsync -a ~/path1 ~/path2
+* debian core
+sudo apt-get update  
+sudo apt-get build-dep linux-image  
+wget URL  
+sudo mv linux-5.0.tar.xz /usr/src  
+cd /usr/src  
+tar xf linux-5.0.tar.bz2  
+cd linux-5.0  
+cp /proc/config.gz .  
+gzip -d config.gz  
+mv config .config  
+make oldconfig  
+make menuconfig  
+make -j8  
+make deb-pkg  
+rm *dev*  
+rm *dbg*  
+sudo dpkg -i *.deb
+* Update Arch
+Часто у новичков возникают проблемы при обновлении арча. Для того, чтобы
+обновления прошли удачно, в консоли прописываем:  
+  
+sudo rm -r /etc/pacman.d/gnupg  
+sudo pacman -Sy gnupg archlinux-keyring  
+sudo pacman-key --init  
+sudo pacman-key --populate archlinux  
+sudo pacman-key --refresh-keys  
+sudo pacman -Sc  
+и далее уже:  
+  
+sudo pacman -Syu  
+\----------------------------------------  
+pacstrap /mnt base linux linux-firmware
 
