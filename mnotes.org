@@ -1,0 +1,378 @@
+ mnotes
+
+                                                
+* Dark Sky AP
+  -----------------
+ shipilov.vowa2009@yandex.ru
+ Ostrog36///
+ 69f619b0404351ceaa32f29dafce75ff
+ https://api.darksky.net/forecast/69f619b0404351ceaa32f29dafce75ff/37.8267,-122.423
+ 
+* font cashe Debian
+  -------------------------------
+   Шрифты для ускорения работы системы не ищутся каждый раз в этих      папках -* система помнит,
+   какие шрифты уже установлены -* какие можно использовать.
+   Нам нужно добавить свои только что установленные шрифты в "память"   системы.
+   Для этого выполняем в консоли:
+   `sudo fc-cache -f -v`
+   После этого в системе должны появиться наши шрифты.
+   шрифты можно узнать командой
+   cat /var/log/Xorg.0.log | grep font $
+
+   fc-match "Font Awesome 5 Free"  посмотреть наличие
+   fc-list установленные
+
+* git
+  ---
+   `git add .`
+
+   `git remote add origin git@github.com:username/mytetra.git`
+
+   `git push -u origin master`
+
+   переименование Git репо
+   Скажем, ваше имя пользователя someuser и ваш проект называется    someproject.
+   Тогда ваш URL-адрес проекта будет 1
+   git@github.com:someuser/someproject.git
+   Если вы переименуете свой проект, он изменит часть someproject    URL-адреса, например.
+   git@github.com:someuser/newprojectname.git
+   (см. сноску, если ваш URL-адрес выглядит не так).
+   Ваша рабочая копия git использует этот URL-адрес, когда вы        выполняете push или pull.
+   Итак, после того, как вы переименуете свой проект, вам придется   сообщить своей рабочей копии новый URL.
+   Вы можете сделать это в два этапа:
+   Во-первых, cd в локальный каталог git и узнайте, какие удаленные  имена ссылаются на этот URL
+   `$ git remote -v`
+   origin  git@github.com:someuser/someproject.git
+   Затем установите новый URL
+   `$ git remote set-url origin git@github.com:someuser/              newprojectname.gitSS`
+   
+* Html > org
+
+  ----------
+  ` cat bookmarks-2018-01-29.json | python2 ~/bin/bookmarks-to-org.py > bookmarks-2018-01-29.org`
+  
+* Subl hide menu
+ нажал на Hide Menu. Оно естественно пропало, а вот как его вернуть это был уже другой вопрос. 
+ Палю фишку! ))) Жмем Ctrl + Shift + P, в   строке вводим menu, выбираем пункт View: Toggle Menu.
+* Update Arch
+  -----------
+   Часто у новичков возникают проблемы при обновлении арча. Для того,    чтобы обновления прошли удачно, в    консоли прописываем:
+```
+   sudo rm -r /etc/pacman.d/gnupg
+   sudo pacman -Sy gnupg archlinux-keyring
+   sudo pacman-key --init
+   sudo pacman-key --populate archlinux
+   sudo pacman-key --refresh-keys
+   sudo pacman -Sc
+   ```
+   и далее уже:
+
+  ` sudo pacman -Syu`
+   
+   `pacstrap /mnt base linux linux-firmware`
+   
+* Copypaste in Screen
+  ------------------
+    ctrl-a, [, переместить курсор в начало копируемого куска,Enter,   переместить курсор в конец копируемого куска (блок будет выделен),    Enter
+    переключиться в окно, куда надо вставить скопированный текст,     переместить курсор туда, куда будет вставлен текст, а затем ctrl-a, ]
+    кроме этого, по ctrl-a, h происходит копирование текста из        текущего окнав ~/hardcopy.номер_текущего_окна
+    
+* wifi
+  ----
+   networkmanager-dmenu
+   enable wifi
+   
+* Grep
+  ---
+   удалить из файла
+   портянку изрядно можно сократить убрав комментарии.
+      `grep -v '^#' file > new file`
+      
+* run prog in term
+  ----------------
+  ` nohup program > /dev/null &`
+
+   частота использования комманд
+   `cat ~/.bash_history | grep -v sudo | cut -d ' ' -f 1 | sort | uniq -c | python -c "import sys; [print('{:05} {}'.format(int(l.split()[0]), l.split()[1])) for l in sys.stdin.readlines(\
+) if len(l.split()) == 2]" | sort -r | head -n 10`
+   или `awk '{ print $1 }' .bash_history | sort | uniq -c | sort -hr`
+   
+* Screen
+  ------
+    `screen -d -m -S session_name progname`
+    где:
+    -d, -m * запуск сессии в detatch режиме (для стартовых скриптов).
+    -S session_name * устанавливает имя для данной сессии.
+    progname * собственно сама запускаемая программа.
+    Позже к этой программе можно будет вернутся(если например вам
+    нужен будет консольный вывод) используя:
+    screen -r session_name
+    Ну и напоследок пару примеров:
+    `screen -d -m -S skype_session skype`
+    `screen -d -m -S my_script /home/username/myscript`
+    
+* example conf wpa_supplicant
+  -------------------------
+  ```
+   network={
+             ssid="SSID"
+             key_mgmt=WPA-PSK
+             psk="PASSWORD"
+     }
+     ```
+   запускать так:
+   `wpa_supplicant -c wifi.conf -i wlan0 -B`
+   если не получишь адрес автоматом, то запусти dhclient вручную:
+
+   `dhclient wlan0`
+   
+* Как на btrfs установить две системы
+  ----------------------------------
+   Дано: HDD ssd 256 Gb на нём уже есть Windows 10(ntfs) 100Гб,
+   остаток места    предназначен для Archa и еще 1го линукса,
+   каким образом оставшееся место сделать btrfs не затирая весь винт
+   и так  что бы туда стала еще одна система?
+   Так же    есть HDD 1Tb (ExFat)    под документы на котором будет home
+   просто `mkfs.btrfs -f -L    WD /   dev/sda` затрет весь диск
+   * этот момент мне подсказали:
+   (lsblk смотрим какая буква диска у оставшихся 100гиг. Если оно не  размечено
+   то, и ssd это sda тогда пишем команду cfdisk /dev/sda
+   Далее размечаем 100гиг и    запоминаем название типа sda2 к примеру.
+   Далее сохраняем выходим. Команда    `mkfs.ext4 /dev/sda2 -L Archlinux`
+   Ну или в вашем случае наверно `mkfs.btrfs   /dev/sda2 -L WD`
+* Dwm tags
+  -------
+   По умолчанию dwm-поведение – открывать приложения с помощью правила или нет на мониторе / экране с фокусом.
+   Чтобы открыть Surf на третьем теге текущего фокусного монитора, это правило будет:
+    ` { "Surf", NULL, NULL, 1 << 2, True, -1 },`
+   Чтобы открыть VLC во втором теге основного монитора, независимо от того, где находится фокус , это правило    будет:
+    ` { "VLC", NULL, NULL, 1 << 1, True, 1 },`
+    
+* Создание swap в файле
+  --------------------
+   Последнее время я предпочитаю создавать swap не в отдельном разделе, а в файле. На мой взгляд, техника стала    достаточно мощной и повседневной необходимости в swap-е нет. Linux редк\
+о к нему обращается. Однако, иногда    swap пригождается. Отводить под swap целую партицию достаточно расточительно, а вот файл — самое то. Всегда    можно от него отказаться, или измени\
+ть размер, или переложить в другое место. Это гибко и не обременительно.
+   Если ваша ситуация сходна с моей, и вы эксплуатируете Linux в аналогичном режиме, то вот рецепт.
+   Создаём файл нужного размера в подходящем месте:
+   `# dd if=/dev/zero of=/swapfile bs=2048 count=1048576`
+   Сетапим swap-файл:
+   `# mkswap /swapfile`
+   Включаем swap:
+   `# swapon /swapfile`
+   Убеждаемся, что swap-файл подключился правильно:
+   `# swapon -s`
+   Чтобы подключение swap происходило автоматически, добавляем запись в /etc/fstab:
+   `/swapfile none swap sw 0 0`
+   
+* Устанавливаем права
+  -------------------
+   `chown -R vladimir:vladimir /home/vladimir/MEGA/vladimir/Библиотека`
+   
+* Bash clock
+  ----------
+   `watch -tn1 'date +%r'` часы в терминале
+   
+* установить Win10 из под Linux без флешки
+  ----------------------------------------
+  ```
+   sudo qemu-kvm -boot d -cdrom /home/user/Downloads/win10.iso -drive file=/dev/sdc,format=raw,media=disk -m 4096
+   ```
+   /dev/sdc * твой винт под винду
+   -m 4096 * 4Гб рамы для виртуалки
+   
+* deb core
+  -------
+```
+   sudo apt-get update
+   sudo apt-get build-dep linux-image
+   wget URL
+   sudo mv linux-5.0.tar.xz /usr/src
+   cd /usr/src
+   tar xf linux-5.0.tar.bz2
+   cd linux-5.0
+   cp /proc/config.gz .
+   gzip -d config.gz
+   mv config .config
+   make oldconfig
+   make menuconfig
+   make -j8
+   make deb-pkg
+   rm *dev*
+   rm *dbg*
+   sudo dpkg -i *.deb
+```
+* освобождение кэша
+  ------------
+   [1] `sudo su`
+   `sync; echo 3 > /proc/sys/vm/drop_caches`
+   или
+   [2] Создайте файл /etc/sysctl.d/60-dirty.conf
+   ```
+   vm.dirty_bytes = 67108864
+   vm.dirty_background_bytes = 16777216
+   vm.dirty_expire_centisecs = 500
+   ```
+   И выполните `sudo sysctl --syste`
+   
+* google-drive-ocamlfuse
+  ----------------------
+   Использование
+   Для начала вам нужно установить google-drive-ocamlfuse в Google. Чтобы сделать это, выполните следующую команду в вашем терминале:
+   `google-drive-ocamlfuse`
+  
+   Это должно открыть вкладку в вашем стандартном веб-браузере, в этой вкладке будет предложено открыть доступ к    вашему Диску для google-drive-ocamlfuse. Согласитесь, подождите нескол\
+ько секунд, пока google-drive-ocamlfuse    обрабатывает авторизацию.
+   Теперь давайте примонтируем Google Drive. Создайте папку в вашей домашней директории, давайте назовем её    "gdrive":
+   `mkdir ~/gdrive`
+   И примонтируйте Goole Drive, используя команды ниже:
+   `google-drive-ocamlfuse ~/gdrive`
+   На этом всё. Если вы хотите настроить интервал между запросами для определения изменений на сервере, формат для    документов Google и так далее * изучите конфигурационный файл ~/.gdf\
+use/default/config.
+   Чтобы Google Drive монтировался при запуске системы, добавьте команду "google-drive-ocamlfuse /path/to/gdrive" (   замените "/path/to/" на точный путь к папке, куда вы хотите примонти\
+ровать Google Drive) в Автоматически    запускаемые приложения.
+   Это должно открыть вкладку в вашем стандартном веб-браузере, в этой вкладке будет предложено открыть доступк    вашему Диску для google-drive-ocamlfuse. Согласитесь, подождите несколь\
+ко секунд, покаgoogle-drive-ocamlfuse    обрабатывает авторизацию.
+   Теперь давайте примонтируем Google Drive. Создайте папку в вашей домашней директории, давайте назовем её    "gdrive":
+   `mkdir ~/mygoogledrive`
+   И примонтируйте Goole Drive, используя команды ниже:
+   `google-drive-ocamlfuse ~/mygoogledrive`
+   На этом всё. Если вы хотите настроить интервал между запросами для определения изменений на сервере, формат для    документов Google и так далее * изучите конфигурационный файл ~/.gdf\
+use/default/config.
+   Чтобы Google Drive монтировался при запуске системы, добавьте команду "google-drive-ocamlfuse /path/to/gdrive" (   замените "/path/to/" на точный путь к папке, куда вы хотите примонти\
+ровать Google Drive) в Автоматически    запускаемые приложения.
+
+ * замена gksu
+   -----------
+    `zenity --password | sudo -S some_app_here`
+
+ * Конвертация из ext4 в xfs
+   ------------------------
+ apt-get install xfsprogs
+ umount /dev/sdc1
+ mkfs.xfs -f /dev/sdc1
+ mount /dev/sdc1 /opt/2
+
+ Проверяем UUID:
+
+ ls -l /dev/disk/by-uuid
+
+ Редактируем:
+
+ nano /etc/fstab
+ меняем ext4 на xfs
+
+* Конвертация из ext4 в xfs
+ apt-get install xfsprogs
+ umount /dev/sdc1
+ mkfs.xfs -f /dev/sdc1
+ mount /dev/sdc1 /opt/2
+
+ Проверяем UUID:
+
+ ls -l /dev/disk/by-uuid
+
+ Редактируем:
+
+ nano /etc/fstab
+ меняем ext4 на xfs
+* Telefon
+  Что бы спариться с телефоном андройд :
+  apt install go-mtpfs
+  apt install gmtp
+  запустить в консоли gmtp
+  нажать подключиться и ждать минуту, должно появиться дерево .
+
+  https://www.archlinux.org/packages/extra/x86_64/gvfs-mtp/
+  Будет автоматически открываться в любом ФМ, который поддерживает gvfs. Наутилус, тунар и т.п.
+
+* Очистка .cache
+  Это удалит все в вашем .cache, к которому последний раз обращались более года назад
+  
+  find ~/.cache/ -type f -atime +365 -delete
+  Если вы нервничаете из-за его запуска, это покажет вам, что будет удалено:
+  
+  find ~/.cache/ -depth -type f -atime +365.
+  Для этого я использую «время доступа», вы также можете попробовать «время создания»,.
+  используя -ctime (хотя я нашел много файлов кеша, которым несколько лет, но к которым все еще обращаются).
+
+* Emacs выделение квадратного блока
+ M-x cua-selection-mode Ctrl+Enter
+* Emacs org notes
+ создать пункт - Ctrl+Enter
+   создать note  - Ctrl+C Ctrl+Z
+   свернуть в заголовки - Shift+Tab
+   свернуть\развернуть раздел -Tab на заголовке
+   отобразить текущее дерево подразделов в новом буфере - C-c C-x b
+   ------------------------------------------------------
+    org-mode можно форматировать текст с помощью символов, 
+   апример, слово обрамленное звездочками будет напечатано жирным (*жирный*). 
+   О возник вопрос, а можно сделать эти символы скрытыми, чтобы после обрамления они не были видны, 
+   .е не отображались?
+   (setq org-hide-emphasis-markers t)
+* Привязать редактор к Git
+  Связывание текстового редактора с Git
+   При редактировании сообщений комита Git по умолчанию открывает Vim. Для тех кто с ним не знаком, это может  стать серьезной проблемой.     Хорошо что это поведение легко изменить выполнив одну команду в        терминале
+   Visual Studio Code
+   git config --global core.editor "code --wait"
+ 
+   Atom
+ 
+   git config --global core.editor "atom --wait"
+ 
+   TextMate
+ 
+   git config --global core.editor "mate -w"
+ 
+   nano
+ 
+   git config --global core.editor "nano -w"
+ 
+   Text Wrangler (Mac)
+ 
+   git config --global core.editor "edit -w"
+ 
+   Sublime Text (Mac)
+ 
+   git config --global core.editor "subl -n -w"
+ 
+   Sublime Text (Win, x32)
+ 
+   git config --global core.editor "'c:/program files (x86)/sublime    text 3/sublime_text.exe' -w"
+ 
+   Sublime Text (Win, x64)
+ 
+   git config --global core.editor "'c:/program files (x86)/sublime    text 3/sublime_text.exe' -w"
+ 
+   Sublime Text (Win, x64)
+ 
+   git config --global core.editor "'c:/program files/sublime text 3/  sublime_text.exe' -w"
+ 
+   Notepad++ (Win, x32)
+ 
+   git config --global core.editor "'c:/program files (x86)/Notepad++/ notepad++.exe' -multiInst -notabbar  -nosession -noPlugin"
+ 
+   Notepad++ (Win, x64)
+ 
+   git config --global core.editor "'c:/program files/Notepad++/       notepad++.exe' -multiInst -notabbar -nosession -noPlugin"
+
+   Kate (Linux)
+ 
+   git config --global core.editor "kate"
+ 
+   Gedit (Linux)
+ 
+   git config --global core.editor "gedit --wait --new-window"
+ 
+   Scratch (Linux)
+ 
+   git config --global core.editor "scratch-text-editor"
+  
+   emacs
+ 
+   git config --global core.editor "emacs"
+ 
+   vim
+ 
+   git config --global core.editor "vim"
+

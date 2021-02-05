@@ -1,0 +1,211 @@
+Debian / Ubuntu минимальная установка Xorg с DWM
+
+* Debian / Ubuntu минимальная установка Xorg с DWM
+  :PROPERTIES:
+  :CUSTOM_ID: debian-ubuntu-минимальная-установка-xorg-с-dwm
+  :END:
+
+[[https://getpocket.com/redirect?url=https%3A%2F%2Fultra-technology.org%2Fr%2Fminimal-xorg-dwm-installation-debian-ubuntu%2F][оригинал]]
+
+У меня уже есть статья о
+[[https://ultra-technology.org/freebsd/freebsd-minimal-xorg-installation/]]
+Эта статья о том же, но с системами Debian на базе. Ниже метод полезен,
+когда жесткий диск имеет небольшое количество свободного пространства.
+Так, для дискового пространства экономики. Кроме того, это хорошее
+чувство, чтобы знать, что система имеет только необходимые пакеты. Но я
+делаю это просто для удовольствия и интереса. Прежде всего, я
+использовал минимальную установку Debian с ежедневными сгенерированных
+.iso.
+
+#+CAPTION: a6c5b97dcd6fbd836c47af68c82744a3.png
+[[../_resources/a1d1175d33774c3eba26380c7744ceab.png]]
+
+Там нет инструментов, таких как wget, DBus и другие, любое окружение
+рабочего стола отсутствует.
+
+При установке системы, мы можем начать процесс установки Xorg.
+
+** Минимальная установка Xorg ядро
+   :PROPERTIES:
+   :CUSTOM_ID: минимальная-установка-xorg-ядро
+   :END:
+
+Во-первых, нам нужно установить ядро Xorg, очень минимальное:
+
+#+BEGIN_EXAMPLE
+  sudo apt install --no-install-recommends xserver-xorg-core               # Basic Xorg libraries, utilities
+  sudo apt install --no-install-recommends xserver-xorg-input-all         # Provides input driver for devices like keyboard, touchpad
+  sudo apt install --no-install-recommends xserver-xorg-video-fbdev   # Xorg display driver
+  sudo apt install --no-install-recommends xserver-xorg-video-(your videocard, can be intel, nouveau, or ati)     # Free and open-sourced video drivers
+
+  Then install additional utilities and fonts that
+#+END_EXAMPLE
+
+Затем установить дополнительные утилиты и шрифты, которые необходимы для
+правильной работы:
+
+#+BEGIN_EXAMPLE
+  sudo apt install --no-install-recommends dbus                        # Necessary for process comunication
+  sudo apt install --no-install-recommends fonts-dejavu-core   # Minimal set of fonts, dejavu fonts are used by dwm by default
+  sudo apt install --no-install
+  -recommends xinit                        # X session starting tools
+#+END_EXAMPLE
+
+Попробуйте выполнить команду StartX Сейчас: =startx=
+
+Если есть ошибка, и в файле журнала вы видите это сообщение:
+
+#+BEGIN_EXAMPLE
+  (EE) modeset(0): drmSetMaster failed: Permission denied
+  (EE) AddScreen/ScreenInit failed for driver 0
+#+END_EXAMPLE
+
+Дополнительный пакет нужно установить.
+
+Это означает, что X-сервер не имеет достаточно прав (Xorg пытается
+получить доступ к некоторым файлам, которые требуются старыми
+драйверами). Нам нужно установить другой пакет и исправить конфиг и эта
+проблема исчезнет:
+
+=sudo apt-get install xserver-xorg-legacy=
+
+Затем откройте /etc/X11/Xwrapper.config файл:
+=sudo nano /etc/X11/Xwrapper.config= И добавьте следующие строки
+(которые отсутствуют):
+
+#+BEGIN_EXAMPLE
+  allowed_users=console
+  needs_root_rights=yes
+#+END_EXAMPLE
+
+Теперь попробуйте StartX команду, X-сервер должен корректно завершить
+работу (успешно):
+
+=startx=
+
+** Preparations for dwm
+   :PROPERTIES:
+   :CUSTOM_ID: preparations-for-dwm
+   :END:
+
+В процессе выполнения, DWM требуется несколько зависимостей. Эти пакеты
+должны быть установлены:
+
+#+BEGIN_EXAMPLE
+  sudo apt install --no-install-recommends libxinerama1   # Xinerama extension for X protocol (multiple screens attached to a single display)
+  sudo apt install --no-install-recommends libxft2             # Font drawing library for X
+#+END_EXAMPLE
+
+** Default dwm from repository
+   :PROPERTIES:
+   :CUSTOM_ID: default-dwm-from-repository
+   :END:
+
+Теперь мы можем попробовать уже составлен, по умолчанию DWM из
+хранилища. OK, установите его:
+
+#+BEGIN_EXAMPLE
+  sudo apt install --no-install-recommends dwm      # Without any modifications, already compiled dwm from repository
+#+END_EXAMPLE
+
+Затем откройте ~ / .xinitrc файл: =nano ~/.xinitrc= И добавьте следующую
+строку внутри: =exec dwm= Запуск X-сервер: =startx= Используйте Alt +
+Shift + Q ярлык, чтобы выйти из DWM и X.
+
+** Модификация и строительство DWM
+   :PROPERTIES:
+   :CUSTOM_ID: модификация-и-строительство-dwm
+   :END:
+
+** Построить-зависимости и Git хранилище загрузки инструмент
+   :PROPERTIES:
+   :CUSTOM_ID: построить-зависимости-и-git-хранилище-загрузки-инструмент
+   :END:
+
+#+BEGIN_EXAMPLE
+  sudo apt install --no-install-recommends git ca-certificates                                        # For sources downloading from git repostiories, certificates for secure connection
+  sudo apt install --no-install-recommends build-essential                                     # gcc, make and other tools for sources compiling
+  sudo apt install --no-install-recommends libx11-dev libxinerama-dev libxft-dev       # Development headers, required for dwm and dmenu building
+#+END_EXAMPLE
+
+##Sources downloading
+
+#+BEGIN_EXAMPLE
+  mkdir sources
+  cd sources
+  git clone https://git.suckless.org/dmenu
+  git clone https://git.suckless.org/dwm
+#+END_EXAMPLE
+
+** dmenu modification and building (used by dwm environment with Alt + P
+shortcut)
+   :PROPERTIES:
+   :CUSTOM_ID: dmenu-modification-and-building-used-by-dwm-environment-with-alt-p-shortcut
+   :END:
+
+dmenu конфигурации модификация:
+
+#+BEGIN_EXAMPLE
+  cd dmenu
+  cp config.def.h config.h
+  nano config.h
+  ---Here you can make some changes, set up fonts, colors, where dmenu will appear (top or bottom), how many lines and others
+#+END_EXAMPLE
+
+dmenu строительство и установка:
+
+#+BEGIN_EXAMPLE
+  sudo make install clean             # ~1 sec of compilation
+  whereis dmenu                        # Show path where dmenu is installed
+  ...
+  dmenu: /usr/local/bin/dmenu   # dmenu is installed in our system with our config settings
+#+END_EXAMPLE
+
+** DWM модификация и строительство
+   :PROPERTIES:
+   :CUSTOM_ID: dwm-модификация-и-строительство
+   :END:
+
+Внесите изменения конфигурации и сборки DWM:
+
+#+BEGIN_EXAMPLE
+  cd dwm/
+  cp config.def.h config.h
+#+END_EXAMPLE
+
+Установите терминал, который вы будете использовать с DWM:
+
+#+BEGIN_EXAMPLE
+  sudo apt install --no-install-recommends rxvt-unicode      # Install any terminal which you like
+#+END_EXAMPLE
+
+Открыть config.h сделать urxvt нашего терминала по умолчанию:
+=nano config.h= Заменить эту линию (st терминал используется по
+умолчанию):
+
+#+BEGIN_EXAMPLE
+  static const char *termcmd[] = { "st", NULL }
+#+END_EXAMPLE
+
+С помощью этой линии (теперь urxvt будет использовать):
+
+#+BEGIN_EXAMPLE
+  static const char *termcmd[] = { "urxvt", NULL }
+#+END_EXAMPLE
+
+Теперь постройтe DWM: =udo make install clean= Не забудьте грим DWM
+начать с X сессии открытого файла .xinitrc: =nano .xinitrc= И добавьте
+следующую строку: =exec dwm= Начало X сессия с DWM: =startx= Используйте
+следующие ссылки:
+
+#+BEGIN_EXAMPLE
+  Alt + Shift + Enter - Run terminal which is in config.h
+  Alt + P                   - Run dmenu, write program name there and press [Enter] to run the program
+  Alt + Shift + Q       - Quit from dwm and X
+#+END_EXAMPLE
+
+#+CAPTION: ff94682e33e868ea7a7a6f7f3130adc4.png
+[[../_resources/a39ee0f80b5b48d88976e3f4652e2825.png]]
+
+Я слегка измененный urxvt конфигурационного файла. Прочитайте эту
+статью - urxvt шрифтов + Iosevka, чтобы узнать, как сделать то же.

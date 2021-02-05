@@ -1,0 +1,796 @@
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with C-x C-f and enter text in its buffer.
+* Void install
+- Двойная загрузка Windows / Linux
+
+- Шифрование диска Linux
+
+- Использование LVM для разделов Linux
+
+- Использование UEFI, чтобы начать прямой: по соображениям скорости загрузки я провожу grub, и я непосредственно инициирует ядро, используя efibootmr.
+
+  
+
+*
+
+Загрузите последнее изображение с сайта [Void Linux](https://a-hel-fi.m.voidlinux.org/live/current/)
+
+Скопируйте образ на флешку с dd
+
+## Начать установку
+
+  
+
+- Войти как root с паролем voidlinux
+
+- Установка QWERTY клавиатуры: loadkeys ru
+
+> Используйте bas для комфорта (в том числе завершения): bash
+
+- Перечислите раздел, чтобы найти свои `fdisk -l`
+
+- `Partition ESP = /dev/sda11`
+
+- `Partition Linux = /dev/sda8`
+
+  
+
+## Подготовка диска:
+
+- Создание зашифрованного контейнера Luks : cryptsetup luksFormat /dev/sda8
+
+- Откройте вновь созданный контейнер Luks:cryptsetup luksOpen /dev/sda8 void
+
+> (Вы можете выбрать то, что вы хотите вместо названия «пустота», просто думаю, что подходит следующее соответственно)
+
+- Создайте VolumeGroup LVM:`vgcreate void /dev/mapper/void`
+
+- Создание логических томов: swap 8GB (если вы хотите использовать спящий режим, положить по крайней мере, столько, сколько свопа как ваша машина RAM) и все оставшееся пространство для корня (внимание к опции две команды, одна из которых с большой буквы L, один со строчной L). Я не отделяю для домашнего раздела не имеет смысла в моем использовании:
+
+- `lvcreate --name swap -L 8G void`
+
+- `lvcreate --name root -l 100%FREE void`
+
+- Создание файловых систем: (выберите ту, который вы хотите, у меня есть свои привычки с ext4)
+
+- `mkswap /dev/mapper/void-swap`
+
+- `mkfs.ext4 /dev/mapper/void-root`
+
+  
+
+## Установите окончательное дерево и установить систему:
+
+- Активировать своп:`swapon /dev/mapper/void-swap`
+
+- Монтаж разделов:
+
+- `mount /dev/mapper/void-root /mnt`
+
+- `mkdir /mnt/boot`
+
+- `mount /dev/sda10 /mnt/boot`
+
+  
+
+## Установка системных файлов в новом дереве:
+
+```
+
+for dir in dev proc sys run; do
+
+mkdir -p /mnt/$dir
+
+mount --rbind /$dir /mnt/$dir
+
+done
+
+```
+
+## Установка базовой системы с немецким зеркалом (ближе):
+
+`xbps-install -Sy -R http://alpha.de.repo.voidlinux.org/current -r /mnt base-system lvm2 cryptsetup vim bash efibootmgr`
+
+  
+
+- Для того, чтобы упростить свою жизнь, я устанавливаю bash и Vim в системе, буду использовать, только в качестве следующего шага для конфигурации.
+
+- Я переехал на efibootmgr для управления UEFI загружается непосредственно на ядре Linux (нет необходимости в grub)
+
+- Chroot в нашу систему:`chroot /mnt /bin/bash`
+
+  
+
+## Права доступа, настройка и локальный DNS:
+
+- Установите пароль для корневого пользователя:`passwd root`
+
+- Установить имя машины (положить все, что вы хотите):`echo void > /etc/hostname vl-pc`
+
+- Разрешений Ремонт на корневой системы (созданной за пределами изолированной):`chown root:root / && chmod 755 /`
+
+- Установить локаль:
+
+ `echo "LANG=ru_UA.UTF-8" > /etc/locale.conf`
+
+ `echo "ru_UA.UTF-8 UTF-8" >> /etc/default/libc-locales`
+
+ `xbps-reconfigure -f glibc-locales`
+
+- Настройка сервера DNS разрешения (положить, что вы хотите):`echo 'nameserver 9.9.9.9' > /etc/resolv.conf`
+
+  
+
+## Система
+
+- Редактирование файла: `fstab`
+
+```
+
+tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0
+
+/dev/void/root / ext4 defaults 0 0
+
+/dev/void/swap swap swap defaults 0 0
+
+/dev/11 /boot vfat defaults 0 0
+
+```
+
+- Изменение efibootmgr опций:`/etc/default/efibootmgr-kernel-hook` :
+
+```
+
+# Options for the kernel hook script installed by the efibootmgr package.
+
+#MODIFY_EFI_ENTRIES=0
+
+# To allow efibootmgr to modify boot entries, set
+
+MODIFY_EFI_ENTRIES=1
+
+# Kernel command-line options. Example:
+
+OPTIONS="root=/dev/mapper/void-root quiet splash loglevel=3 rd.udev.log-priority=3 vt.global_cursor_default=0 slub_debug=P page_poison=1 rd.auto=1 rd.vconsole.keymap=ru"
+
+# Disk where EFI Partition is. Default is /dev/sda
+
+DISK="/dev/11"
+
+```
+
+Это будет включать определение QWERTY клавиатуры ввести ключевую фразу на загрузочном диске (это более удобно ...)
+
+  
+
+- Создание initramfs с новыми параметрами:`xbps-reconfigure -f linux4.19`
+
+- Проверьте заглушки UEFI имеет много добавлено:`efibootmgr`
+
+```
+
+BootCurrent: 0000
+
+Timeout: 0 seconds
+
+BootOrder: 001,2001,2002,2003
+
+Boot0000* EFI USB Device
+
+Boot0001* Windows Boot Manager
+
+Boot0002* Void Linux with kernel 4.19
+
+[...]
+
+```
+
+- [Необязательно] Измените порядок загрузки для загрузки Пустоты по умолчанию:`efibootmgr -o 2,1,2001,2002,2003`
+
+- Перезагрузка системы:`reboot`
+
+  
+
+- После установки
+
+- Обновление системы:` xbps-install -Su`
+
+- Установка красивой оболочки:`xbps-install zsh && chsh`
+
+- Создание пользователя:`useradd -m -s /bin/zsh -U -G wheel,users,audio,video,input vladimir`
+
+- Дайте право использовать `sudo` и группу `wheel`:`visudo`
+
+- Установить сервер X:`xbps-install -S xorg-minimal xinit xterm xf86-video-intel xorg-fonts`
+
+- Установите окна или офис-менеджер. Для меня это i3:`xbps-install i3`
+
+- Настройка русской клавиатуры на сервере X:`mkdir /etc/X11/xorg.conf.d && vim /etc/X11/xorg.conf.d/10-keyboard.conf` :
+
+```
+
+Section "InputClass"
+
+Identifier "system-keyboard"
+
+MatchIsKeyboard "on"
+
+Option "XkbLayout" "us,ru"
+
+Option "XkbModel" "pc105"
+
+Option "XkbOptions" "grp:rshift_toggle,terminate:ctrl_alt_bksp,grp_led:scroll"
+
+EndSection
+
+```
+
+- Установка NoDM для автоматического запуска и подключения графического интерфейса пользователя (мы уже введите парольную фразу диска при загрузке):
+
+```
+
+
+
+xbps-install nodm
+
+vim /etc/sv/nodm/conf
+
+```
+
+```
+
+NODM_USER="${user}"
+
+NODM_XSESSION="/home/${user}/.xinitrc"
+
+```
+
+```
+
+ln -s /etc/sv/nodm /var/service
+
+chmod +x ~user/.xinitrc
+
+```
+
+
+
+
+* Void postinstall
+Для своего нетбука Asus 1215n я выбрал дистрибутив Void Linux с libc-библиотекой, так как для дистрибутива с musl-библиотекой не будет доступна установка проприетарных драйверов для видеокарты "Nvidia ION".
+
+  
+
+Установка с флэшки быстра и незатейлива и здесь приведена не будет. Отмечу только, что для корневой ФС выбираю BtrFS.
+
+  
+
+Обновление и подключение дополнительных репо
+
+После перезагрузки выполняем два обновления системы:
+
+```
+
+# xbps-install -Su
+
+# xbps-install -Su
+
+# reboot
+
+```
+
+Удаляем старые ядра Linux, кроме последнего:
+
+  
+
+`# vkpurge rm all`
+
+  
+
+Делаем запрос на получение списка доступных репозиториев и подключаем три из них:
+
+```
+
+# xbps-query -Rs void-repo
+
+[-] void-repo-debug-9_4 Void Linux drop-in file for the debug repository
+
+[-] void-repo-multilib-6_3 Void Linux drop-in file for the multilib repository
+
+[-] void-repo-multilib-nonfree-6_3 Void Linux drop-in file for the multilib/nonfree repository
+
+[-] void-repo-nonfree-9_4 Void Linux drop-in file for the nonfree repository
+
+  
+
+# xbps-install -Su void-repo-multilib void-repo-multilib-nonfree void-repo-nonfree
+
+```
+
+Безопасность SSH
+
+В Void Linux по умолчанию устанавливается демон sshd с настройками, позволяющими авторизоваться root по паролю. В современных условиях это потенциальная дыра в безопасности системы. Без промедления исправляем:
+
+- останавливаем демон sshd:
+
+`# sv stop sshd;`
+
+- при необходимости запрещаем запуск демона sshd:
+
+`# rm /var/service/sshd;`
+
+- комментируем все host-ключи, кроме /etc/ssh/ssh_host_ed25519_key;
+
+- запрещаем вход для root'а:
+
+PermitRootLogin no;
+
+- разрешаем вход по открытому ключу:
+
+PubkeyAuthentication yes;
+
+- запрещаем вход по паролю:
+
+PasswordAuthentication no.
+
+  
+
+Включение Firewall
+
+https://wiki.voidlinux.org/Firewall_Configuration
+
+По умолчанию в Void Linux установлен iptables. Как обычно, правила храняться в /etc/iptables/iptables.rules и /etc/iptables/ip6tables.rules. Для восстановления правил после перезагрузки включаем демон:
+
+`# ln -s /etc/sv/iptables /var/service/`
+
+  
+
+Служба времени
+
+`# xbps-install -S chrony`
+
+`# ln -s /etc/sv/chronyd/ /var/service/`
+
+  
+
+chronyc makestep – для немедленной синхронизации.
+
+  
+
+Локализация и русификация консоли
+
+Подправляем локаль для правильной работы программ, в частности mosh, gnome-terminal, клиента NextCloud. Также русифицируем консоль с переключением клавиатурных раскладок по "Alt+Shift".
+
+  
+
+В /etc/default/libc-locales раскомментируем необходимые нам локали и запускаем их генерацию (для ru_RU.UTF-8):
+
+```
+
+# sed -i -e "s|#ru_RU.UTF-8|ru_RU.UTF-8|" /etc/default/libc-locales
+
+# xbps-reconfigure -f glibc-locales
+
+```
+
+Задаём локаль по умолчанию:
+
+  
+
+`# echo "LANG=ru_RU.UTF-8" > /etc/locale.conf
+
+  
+
+Выбираем консольный шрифт Terminus размером 24 и полужирным начертанием, и добавляем в консоль переключение между языками по "Alt+Shift". Для этого изменяем соответствующие строки в /etc/rc.conf:
+
+```
+
+KEYMAP="ruwin_alt_sh-UTF-8"
+
+FONT="ter-v24b"
+
+```
+
+Изменения вступят в силу после перезагрузки.
+
+  
+
+Шрифты хранятся в /usr/share/kbd/consolefonts. Сверяясь с этим каталогом и переключившись в консоль, подбираем шрифты командой setfont, например:
+
+  
+
+$ setfont /usr/share/kbd/consolefonts/UniCyrExt_8x16.psf.gz
+
+$ setfont /usr/share/kbd/consolefonts/ruscii_8x16
+
+$ setfont ter-v24b
+
+  
+
+Logging
+
+По умолчанию в Void Linux отсутствует логгирование. При необходимости в нём, на странице Logging in Void Linux, предлагается установить socklog:
+
+```
+
+# xbps-install -S socklog-void
+
+# ln -s /etc/sv/socklog-unix /var/service/
+
+# ln -s /etc/sv/nanoklogd /var/service/
+
+```
+
+Запись логов ведётся в /var/log/socklog/. Для их чтения добавляем себя в группу `socklog: $ sudo usermod -aG socklog $USER`
+
+  
+
+Добавление часто используемого ПО
+
+Устанавливаем часто используемые пакеты:
+
+```
+
+$ sudo xbps-install -Su unzip atom vscode mosh mc chromium opera torbrowser-launcher keepassxc encfs libreoffice tint2 stellarium net-tools NetworkManager-openvpn wireshark-qt zenmap tcpdump calibre file-roller gnome-calculator clamav rkhunter chkrootkit smartmontools parted remmina telegram-desktop cool-retro-term font-3270 ntfs-3g attr-progs libcap-ng-progs
+
+$ sudo usermod -a -G wireshark $USER
+
+```
+
+nvidia340
+
+Так как мой старенький нетбук имеет дополнительный видеочип на "Nvidia ION", а его поддержка закончилась на 340-ой версии драйверов от Nvidia, то устанавливаем соответствующий драйвер; добавляем свой логин в группу пользователей этого видеочипа, и добавляем демон bumblebeed в автозагрузку:
+
+```
+
+$ sudo xbps-install -Su nvidia340 bumblebee bbswitch
+
+$ sudo usermod -a -G bumblebee $USER
+
+$ sudo ln -s /etc/sv/bumblebeed /var/service
+
+```
+
+После ближайшей перезагрузки запускаем различные тесты для проверки работы bumblebee и изменяем пункты меню тех приложений, которым требуется для запуска GLX:
+
+```
+
+$ optirun glxgears -info
+
+$ optirun glxspheres64
+
+$ optirun stellarium
+
+$ optirun cool-retro-term
+
+```
+
+Wifi adapter Broadcom BCM4313
+
+Ищем подходящие проприетарные драйвера в репозиториях и устанавливаем:
+
+```
+
+# xbps-query -Rs broadcom
+
+[-] b43-fwcutter-019_3 Firmware extraction tool for Broadcom wireless driver
+
+[-] broadcom-bt-firmware-12.0.1.1011_1 Broadcom Bluetooth firmware for Linux kernel
+
+[-] broadcom-wl-dkms-6.30.223.271_8 Broadcom proprietary wireless drivers for Linux - DKMS kernel module
+
+  
+
+# xbps-install -Su broadcom-wl-dkms
+
+```
+
+Интересно, что после установки проприетарных драйверов, соединение с базовой станцией (Mikrotik) происходит не с первой попытки. Иногда только после закрытия/открытия крышки нетбука, то есть через спящий режим. Позже попробуем разобраться в причинах такого поведения, а пока нащупал костыль: # rmmod wl cfg80211 && sleep 1 && modprobe wl, после применения которого происходит мгновенное подключение.
+
+  
+
+NextCloud
+
+```
+
+# xbps-install -Su nextcloud-client libgnome-keyring
+
+...
+
+========================================================================
+
+To actually use qtkeychain-qt5 you need to either have kwallet or
+
+libgnome-keyring installed.
+
+========================================================================
+
+qtkeychain-qt5-0.9.1_1: installed successfully.
+
+nextcloud-client-2.6.0_1: configuring ...
+
+Updating GTK+ icon cache for /usr/share/icons/hicolor...
+
+Updating MIME database...
+
+nextcloud-client-2.6.0_1: post-install message:
+
+========================================================================
+
+NextCloud client end-to-end encryption (e2e) is currently unavailable
+
+(LibreSSL 2.9.2 does not provide EVP_PKEY_CTX_set_rsa_oaep_md primitive)
+
+```
+
+libgnome-keyring – для подавления запроса авторизации в браузере.
+
+  
+
+Timeshift
+
+По умолчанию в Void Linux не предусмотрен какой-нибудь планировщик задач, поэтому устанавливаем его для обеспечения запуска задач из timeshift-gtk:
+
+```
+
+# xbps-install -Su timeshift cronie
+
+# ln -s /etc/sv/crond /var/service/
+
+```
+
+Void Linux устанавливается в btrfs-раздел без использования подтомов, тогда как Timeshift нацелен на их использование в стиле Ubuntu, когда система размещена в подтоме @, а /home в подтоме @home. Для соблюдения этих условий необходимо:
+
+  
+
+При наличии UEFI, перед выполнением chroot, необходимо дополнительно примонтировать efi-раздел, например:
+
+`sudo mount /dev/sda2 /mnt/@/boot/efi`. И при установке загрузчика не указывать устройство: grub-install.
+
+  
+
+Если есть необходимость делать снэпшоты для /home, то повторяем вышеприведённые операции для соответствующего btrfs-раздела.
+
+  
+
+powertop
+
+```
+
+# xbps-install -Su powertop xset`
+
+# echo "powertop --auto-tune" >> /etc/rc.local
+
+```
+
+TeamViewer
+
+Для подключения к другим компьютерам через TeamViewer, необходимо установить в систему два пакета:
+
+  
+
+`# xbps-install -Su qt5-webkit qt5-quickcontrols`
+
+  
+
+Скачиваем teamviewer for linux и распаковываем в, например, /opt. Запуск teamviewer производим под обычным пользователем $ /opt/teamviewer/teamviewer. В случае неудачи можем проверить наличие в системе требуемых библиотек $ /opt/teamviewer/tv-setup checklibs.
+
+
+
+
+* Void dwm
+## Dwm
+
+Medic template.svgThis article or section needs expansion.
+
+Reason: Ideally xbps-src should be used over compiling from source as it will produce a proper patched package. (Discuss)
+Dwm is a window manager by the suckless community. It is intended to be lightweight, minimalist and fast.
+
+Installation
+You can install dwm using
+
+`# xbps-install -S dwm`
+However, if you want to customize dwm you will need to build from source.
+
+Building From Source
+
+First download the source code from,
+
+Here[1] and then click the latest tar file at the bottom of the page.
+
+Make sure to unzip,
+
+`$ tar -xvf dwm*`
+Alternatively you can download from the git repository.
+
+First, make sure git is installed
+
+`# xbps-install -S git`
+then clone the repository,
+
+`$ git clone https://git.suckless.org/dwm`
+Lastly, change directory to the newly created folder
+
+`$ cd dwm*`
+Dependencies
+
+First you will need to install packages required to build
+
+`# xbps-install -S base-devel libX11-devel libXft-devel libXinerama-devel`
+Building & Installing
+
+You will need to edit config.mk or it won't build
+
+`$ vim config.mk`
+
+`# FREETYPEINC = ${X11INC}/freetype2`
+
+also you need to change
+
+`X11INC = usr/X11R6/include`
+
+`X11LIB = usr/X11R6/lib`
+
+to
+
+`X11INC = usr/include/X11`
+
+`X11LIB = usr/lib/X11`
+
+Now you can build/install
+
+`# make clean install`
+Configuring & Customizing
+Dwm is written in C, to configure it you will have to edit the header/source file to customize dwm.
+
+Before doing anything, we need to copy the header file
+
+`$ cp config.def.h config.h`
+Don't write directly to config.def.h. Use config.h instead.
+
+Customizations
+
+When customizing, edit the config.h file we created earlier
+
+`$ vim config.h`
+Known Issues
+Crashes due to emojis in the title bar
+
+Xorg may crashes when you try to open a window with emoji in the title. If that's the case, install emoji fonts such as font-symbola.
+
+`# xbps-install -S font-symbola`
+
+* Void Runit
+void](https://app.getpocket.com/tags/void)
+
+  
+
+Алексей Федорчук
+
+  
+
+Система инициализации Runit — одна из отличительных особенностей Void Linux. И особенность практически уникальная: помимо рассматриваемого дистрибутива, эта система использовалась в дистрибутиве Dragora, судьба которого не ясна (последний релиз датируется весной 2012 года), а также энтузиастами — применителями Gentoo. Поэтому информации в сети о ней не очень много.
+
+  
+
+Точнее сказать, информация о Runit, что называется, не на слуху. Ибо и на [сайте проекта](http://smarden.org/runit/), и на [соответствующей странице](http://www.voidlinux.eu/usage/runit/) сайта Void Linux содержится достаточно сведений, чтобы с этой системой разобраться. Тем более, что она очень проста, в отличие от… И вопреки сведениям, которые можно найти в сети, сходна не с SysV, а с BSD-стилем инициации Linux, который некогда применялся в Slackware, не так давно — в Archlinux, а по сей день сохранился, кажется, только в CRUX’е.
+
+  
+
+Подобно классическому BDS-стилю, в Runit’е фактически редуцировано понятие _runlevels_ (то есть так называемых уровней выполнения): в обыденных услвоиях используются только однопользовательский (single) и умолчальный (default, то есть обычный многопользовательский) режимы. Благодаря этому управление стартовыми сервисами в этой системе легко и приятно, что и иллюстрируется приведённой ниже шпаргалкой.
+
+  
+
+Все доступные сценарии стартовых сервисов собраны в каталоге `/erc/sv`, куда попадают автоматически при первичной инсталляции или последующей установке соответствующего пакета (например, `gpm`).
+
+  
+
+Чтобы эти сценарии были доступны для запуска (вручную или автоматически, при старте системы), символические ссылки на них должны быть помещены в каталог `/var/service/`. Что для сервисов по умолчанию опять же делается в ходе первичной инсталляции, а для служб, установленных позднее, должно быть проделано собственноручно (как это описано в рассказике о консольной мыши).
+
+  
+
+Умолчальные сервисы запускаются при старте системы автоматически, установленные вручную же нужно вручную и активизировать такой командой:
+
+  
+
+```
+
+# sv u [name]
+
+  
+
+```
+
+  
+
+где `[name]` — имя каталога из `/erc/sv` (и символической на него ссылки из `/var/service/`); далее для примера будет указываться имя сервиса консольной мыши `gpm`.
+
+  
+
+Запущенный сервис может быть остановлен командой
+
+  
+
+```
+
+# sv d gpm
+
+  
+
+```
+
+  
+
+и (или) перезапущен:
+
+  
+
+```
+
+# sv t gpm
+
+  
+
+```
+
+  
+
+А определить, в каком состоянии находится данный сервис, можно так:
+
+  
+
+```
+
+# sv s gpm
+
+  
+
+```
+
+  
+
+Для запущенного сервиса эта команда выведет такое сообщение:
+
+  
+
+```
+
+run: gpm: (pid 823) 13688s
+
+  
+
+```
+
+  
+
+Все команды управления сервисами (даже последняя, не выполняющая, вроде, никаких действий) требуют прав администратора, полученных тем или иным образом. Кроме того, вместо приведённых внутренних команд утилиты `sv` могут использоваться команды, совместимые с init-скриптами LSB (Linux Base Standard): `start`, `stop`, `restart` и `status`, соответственно.
+
+  
+
+Как было сказано выше, в Runit по умолчанию поддерживается два режима — однопользовательский и умолчальный. И иногда может возникнуть необходимость переключения из второго режима в первый. Что далется очень просто:
+
+  
+
+```
+
+# runsvchdir single
+
+  
+
+```
+
+  
+
+Разумеется, это вызывает закрытие рабочей среды и всех запущенных в ней программ, причём без предупреждения. То есть перед этой операцией нужно озаботиться сохранением рабочих материалов в открытых приложениях. После чего требуется ввод пароля суперпользователя. Возврат в многопользовательский режим выполняется симметричной командой:
+
+  
+
+```
+
+# runsvchdir default
+
+  
+
+```
+
+  
