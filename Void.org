@@ -793,70 +793,76 @@ run: gpm: (pid 823) 13688s
 
 ```
 * void install XBPS Method
-  void install XBPS Method & ROOTFS Method
+-  void install XBPS Method & ROOTFS Method
 
 The XBPS Method
+```
 # mkfs.vfat /dev/sda1
 # mkfs.ext4 /dev/sdaX
 
 # mount /dev/sda2 /mnt/
 # mkdir -p /mnt/boot/efi/
 # mount /dev/sda1 /mnt/boot/efi/
+```
+`# REPO=https://alpha.de.repo.voidlinux.org/current`
+`# ARCH=x86_64`
 
-# REPO=https://alpha.de.repo.voidlinux.org/current
-# ARCH=x86_64
-
-# XBPS_ARCH=$ARCH xbps-install -S -r /mnt -R "$REPO" base-system
+`# XBPS_ARCH=$ARCH xbps-install -S -r /mnt -R "$REPO" base-system`
 –
-The ROOTFS Method
-# wget -c https://voidlinux.org/download/#download-installable-base-live-images-and-rootfs-tarballs
+-  The ROOTFS Method
+`# wget -c https://voidlinux.org/download/#download-installable-base-live-images-and-rootfs-tarballs`
 Распакуйте tarball во вновь настроенные файловые системы:
-# tar xvf void-<...>-ROOTFS.tar.xz -C /mnt
+`# tar xvf void-<...>-ROOTFS.tar.xz -C /mnt`
 ### Configuration ###
 За исключением раздела «Установка базовой системы (только метод ROOTFS)»,
 оставшаяся часть этого руководства является общей для методов установки XBPS и ROOTFS.
 Вход в Chroot
-#!shell
-
+`#!shell`
+```
 # mount --rbind /sys /mnt/sys && mount --make-rslave /mnt/sys
 # mount --rbind /dev /mnt/dev && mount --make-rslave /mnt/dev
 # mount --rbind /proc /mnt/proc && mount --make-rslave /mnt/proc
-
-# cp /etc/resolv.conf /mnt/etc/
+```
+`# cp /etc/resolv.conf /mnt/etc/`
 Chroot в новую установку:
-# PS1='(chroot) # ' chroot /mnt/ /bin/bash
+`# PS1='(chroot) # ' chroot /mnt/ /bin/bash`
 Установить базовую систему (только метод ROOTFS)
-
+```
 # xbps-install -Su xbps
 # xbps-install -u
 # xbps-install base-system
 # xbps-remove base-voidstrap
-Post
-#!shell
 
+```
+Post
+`#!shell`
+```
 # passwd root    
 # echo > /etc/hostname vl-pc
 # echo "LANG=ru_UA.UTF-8" > /etc/locale.conf
 # echo "ru_UA.UTF-8 UTF-8" >> /etc/default/libc-locales       
 # xbps-reconfigure -f glibc-locales
 # xbps-install terminus-font micro(nano)
-
-xbps-install NetworkManager network-manager-applet gnome-icon-theme inetutils-ifconfig gnome-keyring
-# rm -fr /var/service/dhcpcd
-# rm -fr /var/service/wpa_supplicant
+```
+`xbps-install NetworkManager network-manager-applet gnome-icon-theme inetutils-ifconfig gnome-keyring`
+`# rm -fr /var/service/dhcpcd`
+`# rm -fr /var/service/wpa_supplicant`
 Enable and start new services:
-#!shell
-
+`#!shell`
+```
 # ln -s /etc/sv/NetworkManager /var/service
 # ln -s /etc/sv/dbus /var/service
 # blkid
-# micro /etc/fstab
+```
+`# micro /etc/fstab`
+```
 UUID=D89D-AAD2 /boot/efi vfat umask=0077 0 2
 UUID=6cd578d1-f1ca-4f49-b41b-1ce4e6b52cca / ext4 defaults 0 1
 UUID=6e2aa930-ee4d-4e9a-9b40-4f00aa24b3e0 none swap sw 0 0
 tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0
-# micro /etc/default/efibootmgr-kernel-hook
-# Options for the kernel hook script installed by the efibootmgr package.                                                                                                  
+```
+`# micro /etc/default/efibootmgr-kernel-hook`
+# Options for the kernel hook script installed by the efibootmgr package.                                                                                         ```         
 #MODIFY_EFI_ENTRIES=0                                                                                                                                                       
 # To allow efibootmgr to modify boot entries, set                                                                                                                          
 MODIFY_EFI_ENTRIES=1                                                                                                                                                    
@@ -864,24 +870,28 @@ Kernel command-line options. Example:
   # OPTIONS="root=/dev/sda2 loglevel=4 slub_debug=P page_poison=1"                                                                                                           
   OPTIONS="root=/dev/mapper/void-root quiet splash loglevel=3 rd.udev.log-priority=3 vt.global_cursor_default=0 slub_debug=P page_poison=1 rd.auto=1 rd.vconsole.keymap=ru"
   # Disk where EFI Partition is.  Default is /dev/sda                                                                                                                        
-  DISK="/dev/sda11"                                                                                                                                                          
+  DISK="/dev/sda11"                                                                                                                                               ```           
   # Partition number of EFI Partition.  Default is 1                                                                                                                         
   # PART=1
-# xbps-reconfigure -f linux5XXX
+`# xbps-reconfigure -f linux5XXX`
 Используйте xbps-reconfigure (1), чтобы убедиться, что все установленные пакеты настроены правильно:
-chroot) # xbps-reconfigure -fa
-# efibootmgr
+chroot) # `xbps-reconfigure -fa`
+`# efibootmgr`
+```
 (chroot) # xbps-install grub-x86_64-efi
 (chroot) # grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id="Void"
 (chroot) # xbps-install -Su void-repo-nonfree intel-ucode
+```
 Post post -
 постустановка
-ip link
+`ip link`
 Активируйте Интернет после установки
+```
 ip link set dev wlp3s0 up
 ip addr add 192.168.1.2/24 brd + dev wlp3s0
 ip route add default via 192.168.1.1
-# nmtui
+```
+`# nmtui`
 Имя профиля kyivstar-135____________________________ │
 │ Устройство wlp3s0 (AC:ED:5C:14:60:DB)______________ │
 │ │
@@ -908,7 +918,7 @@ ip route add default via 192.168.1.1
 │ │
 │
 
-
+```
 xbps-install -Su
 xbps-install -Su
 reboot
@@ -919,19 +929,22 @@ vkpurge rm all
 [-] void-repo-multilib-6_3         Void Linux drop-in file for the multilib repository
 [-] void-repo-multilib-nonfree-6_3 Void Linux drop-in file for the multilib/nonfree repository
 [-] void-repo-nonfree-9_4          Void Linux drop-in file for the nonfree repository
-
-vkpurge rm all
-# xbps-query -Rs void-repo
+```
+`vkpurge rm all`
+`# xbps-query -Rs void-repo`
 [-] void-repo-debug-9_4            Void Linux drop-in file for the debug repository
 [-] void-repo-multilib-6_3         Void Linux drop-in file for the multilib repository
 [-] void-repo-multilib-nonfree-6_3 Void Linux drop-in file for the multilib/nonfree repository
 [-] void-repo-nonfree-9_4          Void Linux drop-in file for the nonfree repository
-# xbps-install -Su void-repo-multilib void-repo-multilib-nonfree void-repo-nonfree
+`# xbps-install -Su void-repo-multilib void-repo-multilib-nonfree void-repo-nonfree`
 micro /etc/rc.conf
+```
 KEYMAP="ruwin_alt_sh-UTF-8"
 FONT="ter-v24b"
-# xbps-install -S xorg-minimal xinit xterm xf86-video-intel xorg-fonts
+```
+`# xbps-install -S xorg-minimal xinit xterm xf86-video-intel xorg-fonts`
 micro /etc/X11/xorg.conf.d/10-keyboard.conf :
+```
 Section "InputClass"
         Identifier "system-keyboard"
         MatchIsKeyboard "on"
@@ -939,22 +952,22 @@ Section "InputClass"
         Option "XkbModel" "pc105"
         Option "XkbOptions" "grp:rshift_toggle,terminate:ctrl_alt_bksp,grp_led:scroll"
 EndSection
+```
+`# useradd -m -s /bin/bash -U -G wheel,users,audio,video,input,network vladimir`
 
-# useradd -m -s /bin/bash -U -G wheel,users,audio,video,input,network vladimir
-
-xbps-install -S git font-symbola font-awesome5 font-hack-ttf font-iosevka
+`xbps-install -S git font-symbola font-awesome5 font-hack-ttf font-iosevka
 xsetroot dunst xsettingsd lxqt-policykit xfce4-power-manager
-clipit udiskie unclutter xrdb xrandr kitty trayer-srg feh
-xbps-install -S dwm base-devel libX11-devel libXft-devel libXinerama-devel
+clipit udiskie unclutter xrdb xrandr kitty trayer-srg feh`
+`xbps-install -S dwm base-devel libX11-devel libXft-devel libXinerama-devel`
 micro ~/.xinitrc
 
-
+```
 #!/bin/sh
 # Executed by startx (run your window manager from here)
 
 if [ -d /etc/X11/xinit/xinitrc.d ]; then
   for f in /etc/X11/xinit/xinitrc.d/*; do
-
+```
   
 
 
